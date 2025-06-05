@@ -197,7 +197,7 @@
     inputEl.value = "";
 
     try {
-      const res = await fetch("https://chaim.app.n8n.cloud/webhook/d-id-agent", {
+      const res = await fetch("https://chaim.app.n8n.cloud/webhook-test/886eec14-f666-4db2-96f8-5914f21751d0", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: input })
@@ -292,7 +292,7 @@ async function startRecording() {
     scrollToBottom();
 
     try {
-      const res = await fetch("https://chaim.app.n8n.cloud/webhook/d-id-agent", {
+      const res = await fetch("https://chaim.app.n8n.cloud/webhook-test/886eec14-f666-4db2-96f8-5914f21751d0", {
         method: "POST",
         body: formData
       });
