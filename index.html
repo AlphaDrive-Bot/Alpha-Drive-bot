@@ -164,6 +164,39 @@
       color: #4fc3f7;
       text-decoration: underline;
     }
+    .conversation-controls {
+      position: fixed;
+      bottom: 90px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 16px;
+      z-index: 9999;
+    }
+    .call-button {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+    .call-button svg {
+      width: 28px;
+      height: 28px;
+    }
+    .call-button.start {
+      background-color: #4caf50;
+    }
+    .call-button.end {
+      background-color: #f44336;
+    }
+    .call-button:hover {
+      transform: scale(1.1);
+    }
       .conversation-controls {
       position: fixed;
       bottom: 90px;
@@ -200,8 +233,16 @@
   <div class="subtitle"><span style="color: #fff;">Alpha</span><span style="color: #4fc3f7;">-Drive</span></div>
 
   <div class="conversation-controls">
-  <button id="startConversation" class="conversation-button start">התחל שיחה</button>
-  <button id="stopConversation" class="conversation-button stop">עצור שיחה</button>
+  <button id="startCall" class="call-button start" onclick="startConversation()">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="#fff">
+      <path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.11-.21 11.36 11.36 0 003.55 1.13 1 1 0 01.9 1V20a1 1 0 01-1 1A17 17 0 013 5a1 1 0 011-1h3.01a1 1 0 011 .9 11.36 11.36 0 001.13 3.55 1 1 0 01-.21 1.11l-2.2 2.2z"/>
+    </svg>
+  </button>
+  <button id="endCall" class="call-button end" onclick="endConversation()" style="display:none;">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="#fff">
+      <path d="M21 15.46a16.88 16.88 0 00-9-2.54 16.88 16.88 0 00-9 2.54A1 1 0 003 17v3a1 1 0 001 1h3.28a1 1 0 001-.74 11.36 11.36 0 011.13-3.55 1 1 0 011.11-.21l2.2 2.2a15.05 15.05 0 006.59-6.59l-2.2-2.2a1 1 0 01-.21-1.11 11.36 11.36 0 003.55-1.13 1 1 0 011 .9V17a1 1 0 01-1 1z"/>
+    </svg>
+  </button>
 </div>
 
   <div id="response"></div>
@@ -230,6 +271,25 @@
   </div>
 
   <script>
+function startConversation() {
+  document.getElementById('startCall').style.display = 'none';
+  document.getElementById('endCall').style.display = 'inline-flex';
+  continueConversation = true;
+  startRecording();
+}
+function endConversation() {
+  document.getElementById('startCall').style.display = 'inline-flex';
+  document.getElementById('endCall').style.display = 'none';
+  continueConversation = false;
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+  }
+  document.getElementById("recording-indicator").style.display = "none";
+  hideSpeakingIndicator();
+  hideRecordingVisualizer();
+  alert("השיחה הופסקה. תוכל להפעיל מחדש בלחיצה על הכפתור הירוק.");
+}
+
     // === סקריפט מלא ===
 const micButton = document.getElementById("micBtn");
 const sendButton = document.getElementById("sendBtn");
