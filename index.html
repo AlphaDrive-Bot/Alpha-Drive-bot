@@ -254,7 +254,7 @@
   <div id="recording-visualizer">
     <span></span><span></span><span></span><span></span><span></span>
   </div>
-  <button id="stopConversation" style="position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background-color: #f44336; color: #fff; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px;">עצור שיחה</button>
+  
 
   <div class="chat-container">
     <button class="mic-button" aria-label="הקלט קול" id="micBtn">
@@ -442,10 +442,7 @@ async function sendToBot(text = null) {
   }
 }
 
-document.getElementById("stopConversation").addEventListener("click", () => {
-  continueConversation = false;
-  document.getElementById("recording-indicator").style.display = "none";
-  hideSpeakingIndicator();
+
   hideRecordingVisualizer();
   alert("השיחה הופסקה. תוכל להפעיל מחדש בלחיצה על המיקרופון.");
 });
