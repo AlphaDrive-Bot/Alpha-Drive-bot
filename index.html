@@ -135,15 +135,11 @@
     .speaking-indicator span:nth-child(3) { animation-delay: -0.4s; }
     .speaking-indicator span:nth-child(4) { animation-delay: -0.6s; }
     .speaking-indicator span:nth-child(5) { animation-delay: -0.8s; }
-
     @keyframes bounce {
       0%, 80%, 100% { transform: scale(0); }
       40% { transform: scale(1); }
     }
-    a {
-      color: #4fc3f7;
-      text-decoration: underline;
-    }
+    a { color: #4fc3f7; text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -153,6 +149,8 @@
   <div id="speaking-indicator" class="speaking-indicator" style="display: none;">
     <span></span><span></span><span></span><span></span><span></span>
   </div>
+  <div id="recording-indicator" style="display: none; margin-bottom: 12px;">🎙️ אתה מדבר...</div>
+  <button id="stopConversation" style="position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background-color: #f44336; color: #fff; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px;">עצור שיחה</button>
   <div class="chat-container">
     <button class="mic-button" aria-label="הקלט קול">
       <svg xmlns="http://www.w3.org/2000/svg" height="22" width="22" viewBox="0 0 24 24">
@@ -170,11 +168,13 @@
     const micButton = document.querySelector(".mic-button");
     const responseDiv = document.getElementById("response");
     const inputEl = document.getElementById("userInput");
+    let mediaRecorder;
+    let audioChunks = [];
+    let continueConversation = true;
 
     function showSpeakingIndicator() {
       document.getElementById("speaking-indicator").style.display = "flex";
     }
-
     function hideSpeakingIndicator() {
       document.getElementById("speaking-indicator").style.display = "none";
     }
@@ -182,20 +182,16 @@
     async function sendToBot(text = null) {
       const input = text || inputEl.value.trim();
       if (!input) return;
-
       const userMsg = document.createElement("div");
       userMsg.className = "bubble user-bubble fade-in";
       userMsg.innerText = input;
       responseDiv.appendChild(userMsg);
       scrollToBottom();
-
       const thinking = document.createElement("div");
       thinking.id = "thinking";
-      thinking.innerHTML = `⏳ הסוכן חושב...
-        <div class="speaking-indicator"><span></span><span></span><span></span><span></span><span></span></div>`;
+      thinking.innerHTML = `⏳ הסוכן חושב...<div class="speaking-indicator"><span></span><span></span><span></span><span></span><span></span></div>`;
       responseDiv.appendChild(thinking);
       inputEl.value = "";
-
       try {
         const res = await fetch("https://chaim.app.n8n.cloud/webhook/886eec14-f666-4db2-96f8-5914f21751d0", {
           method: "POST",
@@ -212,9 +208,7 @@
     async function handleResponse(res) {
       const thinking = document.getElementById("thinking");
       if (thinking) thinking.remove();
-
       const contentType = res.headers.get("Content-Type");
-
       if (contentType && contentType.includes("audio")) {
         const blob = await res.blob();
         const audioUrl = URL.createObjectURL(blob);
@@ -223,13 +217,10 @@
         audio.play();
         audio.onended = () => {
           hideSpeakingIndicator();
-          setTimeout(() => {
-            startRecording();
-          }, 500);
+          if (continueConversation) startRecording();
         };
         return;
       }
-
       const raw = await res.text();
       let parsed = null;
       try {
@@ -237,26 +228,21 @@
       } catch (_) {
         parsed = { text: raw };
       }
-
       if (parsed.text) {
         const botMsg = document.createElement("div");
         botMsg.className = "bubble bot-bubble fade-in";
         botMsg.innerHTML = parsed.text;
         responseDiv.appendChild(botMsg);
       }
-
       if (parsed.audio_url) {
         const audio = new Audio(parsed.audio_url);
         showSpeakingIndicator();
         audio.play();
         audio.onended = () => {
           hideSpeakingIndicator();
-          setTimeout(() => {
-            startRecording();
-          }, 500);
+          if (continueConversation) startRecording();
         };
       }
-
       scrollToBottom();
     }
 
@@ -266,41 +252,26 @@
       }, 100);
     }
 
-    document.addEventListener("DOMContentLoaded", () => {
-      const input = document.getElementById("userInput");
-      const sendButton = document.querySelector(".send-button");
-      sendButton.addEventListener("click", () => sendToBot());
-      input.addEventListener("keydown", function (e) {
-        if (e.key === "Enter") sendToBot();
-      });
-    });
-
-    let mediaRecorder;
-    let audioChunks = [];
-
     async function startRecording() {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaRecorder = new MediaRecorder(stream);
       audioChunks = [];
-
+      document.getElementById("recording-indicator").style.display = "block";
       mediaRecorder.ondataavailable = event => {
         audioChunks.push(event.data);
       };
-
       mediaRecorder.onstop = async () => {
+        document.getElementById("recording-indicator").style.display = "none";
         const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
         const formData = new FormData();
         formData.append('file', audioBlob, 'recording.webm');
         formData.append('message_type', 'voice');
         formData.append('source', 'mic');
-
         const thinking = document.createElement("div");
         thinking.id = "thinking";
-        thinking.innerHTML = `⏳ הסוכן חושב...
-          <div class="speaking-indicator"><span></span><span></span><span></span><span></span><span></span></div>`;
+        thinking.innerHTML = `⏳ הסוכן חושב...<div class="speaking-indicator"><span></span><span></span><span></span><span></span><span></span></div>`;
         responseDiv.appendChild(thinking);
         scrollToBottom();
-
         try {
           const res = await fetch("https://chaim.app.n8n.cloud/webhook/886eec14-f666-4db2-96f8-5914f21751d0", {
             method: "POST",
@@ -312,13 +283,12 @@
           responseDiv.innerHTML += `<p>❌ שגיאה בשליחה: ${err.message}</p>`;
         }
       };
-
       mediaRecorder.start();
       setTimeout(() => {
         if (mediaRecorder && mediaRecorder.state !== "inactive") {
           mediaRecorder.stop();
         }
-      }, 5000); // משך הקלטה – ניתן לשנות
+      }, 5000);
     }
 
     function stopRecording() {
@@ -331,6 +301,22 @@
     micButton.addEventListener("mouseup", stopRecording);
     micButton.addEventListener("touchstart", startRecording);
     micButton.addEventListener("touchend", stopRecording);
+
+    document.getElementById("stopConversation").addEventListener("click", () => {
+      continueConversation = false;
+      document.getElementById("recording-indicator").style.display = "none";
+      hideSpeakingIndicator();
+      alert("השיחה הופסקה. תוכל להפעיל מחדש בלחיצה על המיקרופון.");
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const input = document.getElementById("userInput");
+      const sendButton = document.querySelector(".send-button");
+      sendButton.addEventListener("click", () => sendToBot());
+      input.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") sendToBot();
+      });
+    });
   </script>
 </body>
 </html>
