@@ -71,7 +71,7 @@
 .send-button svg {
       width: 20px;
       height: 20px;
-      fill: #555; /* Original fill color for mic/send */
+      fill: #555;
     }
    .mic-button:hover,
 .send-button:hover {
@@ -144,39 +144,27 @@
     }
    a { color: #4fc3f7; text-decoration: underline; }
 
-   /* Styles for the equalizer */
-   #equalizer {
-      display: flex;
-      justify-content: center;
-      align-items: flex-end;
-      gap: 3px;
-      height: 50px; /* Height for the equalizer animation */
+   /* Styles for the audio visualizer */
+   #audioVisualizer {
+      height: 50px;
+      width: 80%;
+      max-width: 300px;
       margin: 10px auto;
-      max-width: 300px; /* Limit width */
+      background-color: rgba(0, 0, 0, 0.3);
+      border-radius: 5px;
+      overflow: hidden;
       display: none; /* Hidden by default */
+      position: relative;
    }
 
-   .bar {
-      width: 4px;
-      background-color: #4CAF50; /* Green color for equalizer bars */
-      border-radius: 2px;
-      animation: equalize 0.8s infinite ease-in-out alternate;
-   }
-
-   .bar:nth-child(1) { animation-delay: 0s; }
-   .bar:nth-child(2) { animation-delay: 0.1s; }
-   .bar:nth-child(3) { animation-delay: 0.2s; }
-   .bar:nth-child(4) { animation-delay: 0.3s; }
-   .bar:nth-child(5) { animation-delay: 0.4s; }
-   .bar:nth-child(6) { animation-delay: 0.5s; }
-   .bar:nth-child(7) { animation-delay: 0.6s; }
-   .bar:nth-child(8) { animation-delay: 0.7s; }
-   .bar:nth-child(9) { animation-delay: 0.8s; }
-   .bar:nth-child(10) { animation-delay: 0.9s; }
-
-   @keyframes equalize {
-      0% { height: 10%; }
-      100% { height: 100%; }
+   #visualizerLine {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 0; /* Will be dynamically set by JS */
+      background-color: #4CAF50; /* Green line */
+      transition: height 0.05s linear; /* Smooth transition for height changes */
    }
 
    /* Call button inside chat container */
@@ -211,18 +199,11 @@
   <div class="title">שוחח עם הסוכן הדיגיטלי</div>
  <div class="subtitle"><span style="color: #fff;">Alpha</span><span style="color: #4fc3f7;">-Drive</span></div>
   <div id="response"></div>
-  <div id="equalizer">
-    <div class="bar"></div>
-    <div class="bar"></div>
-    <div class="bar"></div>
-    <div class="bar"></div>
-    <div class="bar"></div>
-    <div class="bar"></div>
-    <div class="bar"></div>
-    <div class="bar"></div>
-    <div class="bar"></div>
-    <div class="bar"></div>
+
+  <div id="audioVisualizer">
+    <div id="visualizerLine"></div>
   </div>
+
   <div id="speaking-indicator" class="speaking-indicator" style="display: none;">
     <span></span><span></span><span></span><span></span><span></span>
   </div>
@@ -246,7 +227,10 @@
     const responseDiv = document.getElementById("response");
     const inputEl = document.getElementById("userInput");
     const callButton = document.getElementById("callButton");
-    const equalizer = document.getElementById("equalizer");
+    const sendButton = document.querySelector(".send-button");
+    const audioVisualizer = document.getElementById("audioVisualizer");
+    const visualizerLine = document.getElementById("visualizerLine");
+
     let mediaRecorder;
     let audioChunks = [];
     let isCalling = false; // New state variable to track call status
@@ -262,38 +246,48 @@
       document.getElementById("speaking-indicator").style.display = "none";
     }
 
-    function showEqualizer() {
-        equalizer.style.display = "flex";
+    function startAudioVisualizer() {
+        audioVisualizer.style.display = "block"; // Show the container
         if (!audioContext) {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
         }
-        analyser = audioContext.createAnalyser();
-        analyser.fftSize = 256;
+        if (!analyser) {
+            analyser = audioContext.createAnalyser();
+            analyser.fftSize = 256;
+        }
+
         const bufferLength = analyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
 
-        function draw() {
-            animationFrameId = requestAnimationFrame(draw);
+        function drawVisualizer() {
+            animationFrameId = requestAnimationFrame(drawVisualizer);
             analyser.getByteFrequencyData(dataArray);
 
-            const bars = equalizer.children;
-            const step = Math.floor(bufferLength / bars.length);
-            for (let i = 0; i < bars.length; i++) {
-                const barHeight = dataArray[i * step] / 255 * 100; // Normalize to 100%
-                bars[i].style.height = `${barHeight}%`;
+            let sum = 0;
+            for (let i = 0; i < bufferLength; i++) {
+                sum += dataArray[i];
             }
+            let average = sum / bufferLength;
+
+            // Normalize average to a percentage for the visualizer line height
+            // Max average for 8-bit data is 255. Adjust multiplier for desired visual effect.
+            const lineHeight = (average / 255) * 100;
+            visualizerLine.style.height = `${lineHeight}%`;
         }
-        draw();
+        drawVisualizer();
     }
 
-    function hideEqualizer() {
-        equalizer.style.display = "none";
+    function stopAudioVisualizer() {
+        audioVisualizer.style.display = "none"; // Hide the container
         if (animationFrameId) {
             cancelAnimationFrame(animationFrameId);
         }
         if (source) {
             source.disconnect();
             source = null;
+        }
+        if (visualizerLine) {
+            visualizerLine.style.height = '0%'; // Reset line height
         }
     }
 
@@ -311,7 +305,10 @@
       thinking.id = "thinking";
       thinking.innerHTML = `⏳ הסוכן חושב...<div class="speaking-indicator"><span></span><span></span><span></span><span></span><span></span></div>`;
       responseDiv.appendChild(thinking);
-      inputEl.value = "";
+      inputEl.value = ""; // Clear input after sending
+
+      // Hide visualizer if text is sent while recording might be active
+      stopAudioVisualizer();
 
       try {
         const res = await fetch("https://chaim.app.n8n.cloud/webhook/886eec14-f666-4db2-96f8-5914f21751d0", {
@@ -383,15 +380,18 @@
             mediaRecorder = new MediaRecorder(stream);
             audioChunks = [];
             document.getElementById("recording-indicator").style.display = "block";
-            showEqualizer(); // Show equalizer when recording starts
+            startAudioVisualizer(); // Start the live audio visualizer
 
-            // Connect stream to AudioContext for equalizer
+            // Connect stream to AudioContext for visualizer
             if (!audioContext) {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
             }
+            if (source) { // Disconnect previous source if exists
+                source.disconnect();
+            }
             source = audioContext.createMediaStreamSource(stream);
             source.connect(analyser);
-            analyser.connect(audioContext.destination); // Connect to speakers so you can hear yourself (optional)
+            // analyser.connect(audioContext.destination); // Optional: Connect to speakers so you can hear yourself (careful with feedback)
 
 
             mediaRecorder.ondataavailable = event => {
@@ -400,10 +400,13 @@
 
             mediaRecorder.onstop = async () => {
               document.getElementById("recording-indicator").style.display = "none";
-              hideEqualizer(); // Hide equalizer when recording stops
-              // Disconnect audio stream if it's no longer needed for recording
+              stopAudioVisualizer(); // Stop the live audio visualizer when recording stops
+
               if (stream) {
                   stream.getTracks().forEach(track => track.stop());
+              }
+              if (source && analyser) {
+                  source.disconnect(analyser);
               }
 
               const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
@@ -430,8 +433,9 @@
               }
             };
             mediaRecorder.start();
+            // Automatically stop recording after 5 seconds if still active
             setTimeout(() => {
-              if (mediaRecorder && mediaRecorder.state !== "inactive" && isCalling) { // Only stop if still calling
+              if (mediaRecorder && mediaRecorder.state !== "inactive" && isCalling) {
                 mediaRecorder.stop();
               }
             }, 5000);
@@ -446,7 +450,7 @@
     function stopRecording() {
       if (mediaRecorder && mediaRecorder.state !== "inactive") {
         mediaRecorder.stop();
-        hideEqualizer(); // Ensure equalizer is hidden when stopped manually
+        stopAudioVisualizer(); // Ensure visualizer is stopped manually
       }
     }
 
@@ -455,10 +459,11 @@
       if (isCalling) {
         // End call
         isCalling = false;
-        stopRecording();
-        hideSpeakingIndicator();
-        hideEqualizer(); // Hide equalizer when call ends
-        callButton.classList.remove("active"); // Change to green background
+        stopRecording(); // Stop recording if active
+        document.getElementById("recording-indicator").style.display = "none"; // Hide recording indicator
+        hideSpeakingIndicator(); // Hide speaking indicator
+        stopAudioVisualizer(); // Hide visualizer when call ends
+        callButton.classList.remove("active"); // Change to default background
         callButton.setAttribute("aria-label", "התחל שיחה");
         alert("השיחה הופסקה. תוכל להפעיל מחדש בלחיצה על אייקון הטלפון.");
       } else {
@@ -473,20 +478,12 @@
     // Event listener for the call button
     callButton.addEventListener("click", toggleCall);
 
-    // Initial mic and send button listeners (keep their original behavior)
-    micButton.addEventListener("mousedown", startRecording);
-    micButton.addEventListener("mouseup", stopRecording);
-    micButton.addEventListener("touchstart", startRecording);
-    micButton.addEventListener("touchend", stopRecording);
-
-    document.addEventListener("DOMContentLoaded", () => {
-      const input = document.getElementById("userInput");
-      const sendButton = document.querySelector(".send-button");
-      sendButton.addEventListener("click", () => sendToBot());
-      input.addEventListener("keydown", function (e) {
-        if (e.key === "Enter") sendToBot();
-      });
+    // Event listeners for text input and send button
+    sendButton.addEventListener("click", () => sendToBot());
+    inputEl.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") sendToBot();
     });
+
   </script>
 </body>
 </html>
