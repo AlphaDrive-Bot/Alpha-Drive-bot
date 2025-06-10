@@ -167,155 +167,170 @@
     </button>
   </div>
   <script>
-  const micButton = document.querySelector(".mic-button");
-  const responseDiv = document.getElementById("response");
-  const inputEl = document.getElementById("userInput");
+    const micButton = document.querySelector(".mic-button");
+    const responseDiv = document.getElementById("response");
+    const inputEl = document.getElementById("userInput");
 
-  function showSpeakingIndicator() {
-    document.getElementById("speaking-indicator").style.display = "flex";
-  }
+    function showSpeakingIndicator() {
+      document.getElementById("speaking-indicator").style.display = "flex";
+    }
 
-  function hideSpeakingIndicator() {
-    document.getElementById("speaking-indicator").style.display = "none";
-  }
+    function hideSpeakingIndicator() {
+      document.getElementById("speaking-indicator").style.display = "none";
+    }
 
-  async function sendToBot(text = null) {
-    const input = text || inputEl.value.trim();
-    if (!input) return;
+    async function sendToBot(text = null) {
+      const input = text || inputEl.value.trim();
+      if (!input) return;
 
-    const userMsg = document.createElement("div");
-    userMsg.className = "bubble user-bubble fade-in";
-    userMsg.innerText = input;
-    responseDiv.appendChild(userMsg);
-    scrollToBottom();
+      const userMsg = document.createElement("div");
+      userMsg.className = "bubble user-bubble fade-in";
+      userMsg.innerText = input;
+      responseDiv.appendChild(userMsg);
+      scrollToBottom();
 
-    const thinking = document.createElement("div");
-    thinking.id = "thinking";
-    thinking.innerHTML = `⏳ הסוכן חושב...
-      <div class="speaking-indicator"><span></span><span></span><span></span><span></span><span></span></div>`;
-    responseDiv.appendChild(thinking);
-    inputEl.value = "";
+      const thinking = document.createElement("div");
+      thinking.id = "thinking";
+      thinking.innerHTML = `⏳ הסוכן חושב...
+        <div class="speaking-indicator"><span></span><span></span><span></span><span></span><span></span></div>`;
+      responseDiv.appendChild(thinking);
+      inputEl.value = "";
 
-    try {
-      const res = await fetch("https://chaim.app.n8n.cloud/webhook/886eec14-f666-4db2-96f8-5914f21751d0", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: input })
+      try {
+        const res = await fetch("https://chaim.app.n8n.cloud/webhook/886eec14-f666-4db2-96f8-5914f21751d0", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: input })
+        });
+        await handleResponse(res);
+      } catch (err) {
+        thinking.remove();
+        responseDiv.innerHTML += `<p>❌ שגיאה בשליחה: ${err.message}</p>`;
+      }
+    }
+
+    async function handleResponse(res) {
+      const thinking = document.getElementById("thinking");
+      if (thinking) thinking.remove();
+
+      const contentType = res.headers.get("Content-Type");
+
+      if (contentType && contentType.includes("audio")) {
+        const blob = await res.blob();
+        const audioUrl = URL.createObjectURL(blob);
+        showSpeakingIndicator();
+        const audio = new Audio(audioUrl);
+        audio.play();
+        audio.onended = () => {
+          hideSpeakingIndicator();
+          setTimeout(() => {
+            startRecording();
+          }, 500);
+        };
+        return;
+      }
+
+      const raw = await res.text();
+      let parsed = null;
+      try {
+        parsed = JSON.parse(raw.trim());
+      } catch (_) {
+        parsed = { text: raw };
+      }
+
+      if (parsed.text) {
+        const botMsg = document.createElement("div");
+        botMsg.className = "bubble bot-bubble fade-in";
+        botMsg.innerHTML = parsed.text;
+        responseDiv.appendChild(botMsg);
+      }
+
+      if (parsed.audio_url) {
+        const audio = new Audio(parsed.audio_url);
+        showSpeakingIndicator();
+        audio.play();
+        audio.onended = () => {
+          hideSpeakingIndicator();
+          setTimeout(() => {
+            startRecording();
+          }, 500);
+        };
+      }
+
+      scrollToBottom();
+    }
+
+    function scrollToBottom() {
+      setTimeout(() => {
+        responseDiv.scrollTop = responseDiv.scrollHeight;
+      }, 100);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const input = document.getElementById("userInput");
+      const sendButton = document.querySelector(".send-button");
+      sendButton.addEventListener("click", () => sendToBot());
+      input.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") sendToBot();
       });
-
-      await handleResponse(res);
-    } catch (err) {
-      thinking.remove();
-      responseDiv.innerHTML += `<p>❌ שגיאה בשליחה: ${err.message}</p>`;
-    }
-  }
-
-  async function handleResponse(res) {
-    const thinking = document.getElementById("thinking");
-    const contentType = res.headers.get("Content-Type");
-    thinking.remove();
-
-    if (contentType && contentType.includes("audio")) {
-      const blob = await res.blob();
-      const audioUrl = URL.createObjectURL(blob);
-      showSpeakingIndicator();
-      const audio = new Audio(audioUrl);
-      audio.play();
-      audio.onended = hideSpeakingIndicator;
-      return;
-    }
-
-    const raw = await res.text();
-    let parsed = null;
-    try {
-      parsed = JSON.parse(raw.trim());
-    } catch (_) {
-      parsed = { text: raw };
-    }
-
-    if (parsed.text) {
-      const botMsg = document.createElement("div");
-      botMsg.className = "bubble bot-bubble fade-in";
-      botMsg.innerHTML = parsed.text;
-      responseDiv.appendChild(botMsg);
-    }
-
-    if (parsed.audio_url) {
-      const audio = new Audio(parsed.audio_url);
-      showSpeakingIndicator();
-      audio.play();
-      audio.onended = hideSpeakingIndicator;
-    }
-
-    scrollToBottom();
-  }
-
-  function scrollToBottom() {
-    setTimeout(() => {
-      responseDiv.scrollTop = responseDiv.scrollHeight;
-    }, 100);
-  }
-
-  document.addEventListener("DOMContentLoaded", () => {
-    const input = document.getElementById("userInput");
-    const sendButton = document.querySelector(".send-button");
-    sendButton.addEventListener("click", () => sendToBot());
-    input.addEventListener("keydown", function (e) {
-      if (e.key === "Enter") sendToBot();
     });
-  });
 
-let mediaRecorder;
-let audioChunks = [];
+    let mediaRecorder;
+    let audioChunks = [];
 
-async function startRecording() {
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  mediaRecorder = new MediaRecorder(stream);
-  audioChunks = [];
+    async function startRecording() {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+      audioChunks = [];
 
-  mediaRecorder.ondataavailable = event => {
-    audioChunks.push(event.data);
-  };
+      mediaRecorder.ondataavailable = event => {
+        audioChunks.push(event.data);
+      };
 
-  mediaRecorder.onstop = async () => {
-    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-    const formData = new FormData();
-    formData.append('file', audioBlob, 'recording.webm');
-    formData.append('message_type', 'voice');
-    formData.append('source', 'mic');
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        const formData = new FormData();
+        formData.append('file', audioBlob, 'recording.webm');
+        formData.append('message_type', 'voice');
+        formData.append('source', 'mic');
 
-    const thinking = document.createElement("div");
-    thinking.id = "thinking";
-    thinking.innerHTML = `⏳ הסוכן חושב...
-      <div class="speaking-indicator"><span></span><span></span><span></span><span></span><span></span></div>`;
-    responseDiv.appendChild(thinking);
-    scrollToBottom();
+        const thinking = document.createElement("div");
+        thinking.id = "thinking";
+        thinking.innerHTML = `⏳ הסוכן חושב...
+          <div class="speaking-indicator"><span></span><span></span><span></span><span></span><span></span></div>`;
+        responseDiv.appendChild(thinking);
+        scrollToBottom();
 
-    try {
-      const res = await fetch("https://chaim.app.n8n.cloud/webhook/886eec14-f666-4db2-96f8-5914f21751d0", {
-        method: "POST",
-        body: formData
-      });
-      await handleResponse(res);
-    } catch (err) {
-      thinking.remove();
-      responseDiv.innerHTML += `<p>❌ שגיאה בשליחה: ${err.message}</p>`;
+        try {
+          const res = await fetch("https://chaim.app.n8n.cloud/webhook/886eec14-f666-4db2-96f8-5914f21751d0", {
+            method: "POST",
+            body: formData
+          });
+          await handleResponse(res);
+        } catch (err) {
+          thinking.remove();
+          responseDiv.innerHTML += `<p>❌ שגיאה בשליחה: ${err.message}</p>`;
+        }
+      };
+
+      mediaRecorder.start();
+      setTimeout(() => {
+        if (mediaRecorder && mediaRecorder.state !== "inactive") {
+          mediaRecorder.stop();
+        }
+      }, 5000); // משך הקלטה – ניתן לשנות
     }
-  };
 
-  mediaRecorder.start();
-}
+    function stopRecording() {
+      if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        mediaRecorder.stop();
+      }
+    }
 
-function stopRecording() {
-  if (mediaRecorder && mediaRecorder.state !== "inactive") {
-    mediaRecorder.stop();
-  }
-}
-
-micButton.addEventListener("mousedown", startRecording);
-micButton.addEventListener("mouseup", stopRecording);
-micButton.addEventListener("touchstart", startRecording);
-micButton.addEventListener("touchend", stopRecording);
-</script>
+    micButton.addEventListener("mousedown", startRecording);
+    micButton.addEventListener("mouseup", stopRecording);
+    micButton.addEventListener("touchstart", startRecording);
+    micButton.addEventListener("touchend", stopRecording);
+  </script>
 </body>
 </html>
