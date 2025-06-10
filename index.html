@@ -71,7 +71,7 @@
 .send-button svg {
       width: 20px;
       height: 20px;
-      fill: #555;
+      fill: #555; /* Original fill color for mic/send */
     }
    .mic-button:hover,
 .send-button:hover {
@@ -144,54 +144,94 @@
     }
    a { color: #4fc3f7; text-decoration: underline; }
 
-   /* Styles for the call button */
+   /* Styles for the equalizer */
+   #equalizer {
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      gap: 3px;
+      height: 50px; /* Height for the equalizer animation */
+      margin: 10px auto;
+      max-width: 300px; /* Limit width */
+      display: none; /* Hidden by default */
+   }
+
+   .bar {
+      width: 4px;
+      background-color: #4CAF50; /* Green color for equalizer bars */
+      border-radius: 2px;
+      animation: equalize 0.8s infinite ease-in-out alternate;
+   }
+
+   .bar:nth-child(1) { animation-delay: 0s; }
+   .bar:nth-child(2) { animation-delay: 0.1s; }
+   .bar:nth-child(3) { animation-delay: 0.2s; }
+   .bar:nth-child(4) { animation-delay: 0.3s; }
+   .bar:nth-child(5) { animation-delay: 0.4s; }
+   .bar:nth-child(6) { animation-delay: 0.5s; }
+   .bar:nth-child(7) { animation-delay: 0.6s; }
+   .bar:nth-child(8) { animation-delay: 0.7s; }
+   .bar:nth-child(9) { animation-delay: 0.8s; }
+   .bar:nth-child(10) { animation-delay: 0.9s; }
+
+   @keyframes equalize {
+      0% { height: 10%; }
+      100% { height: 100%; }
+   }
+
+   /* Call button inside chat container */
    .call-button {
-      position: fixed;
-      bottom: 80px;
-      left: 50%;
-      transform: translateX(-50%);
-      background-color: #4CAF50; /* Green for start call */
+      background-color: #fff; /* Default background for start call */
       border: none;
       border-radius: 50%;
-      width: 60px;
-      height: 60px;
+      width: 42px;
+      height: 42px;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      margin-right: 6px; /* Space from input field */
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       transition: background-color 0.3s ease;
-      z-index: 10000; /* Ensure it's above other elements */
-    }
+      flex-shrink: 0; /* Prevent shrinking */
+   }
 
    .call-button.active {
-      background-color: #f44336; /* Red for end call */
-    }
+      background-color: #f44336; /* Red background for end call */
+   }
 
    .call-button svg {
-      fill: #fff;
-      width: 30px;
-      height: 30px;
-    }
+      fill: #555; /* Original fill color for phone icon */
+      width: 24px;
+      height: 24px;
+   }
   </style>
 </head>
 <body>
   <div class="title">שוחח עם הסוכן הדיגיטלי</div>
  <div class="subtitle"><span style="color: #fff;">Alpha</span><span style="color: #4fc3f7;">-Drive</span></div>
   <div id="response"></div>
+  <div id="equalizer">
+    <div class="bar"></div>
+    <div class="bar"></div>
+    <div class="bar"></div>
+    <div class="bar"></div>
+    <div class="bar"></div>
+    <div class="bar"></div>
+    <div class="bar"></div>
+    <div class="bar"></div>
+    <div class="bar"></div>
+    <div class="bar"></div>
+  </div>
   <div id="speaking-indicator" class="speaking-indicator" style="display: none;">
     <span></span><span></span><span></span><span></span><span></span>
   </div>
   <div id="recording-indicator" style="display: none; margin-bottom: 12px;">🎙️ אתה מדבר...</div>
- <button id="callButton" class="call-button" aria-label="התחל שיחה">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-      <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.47.57 3.57.11.35.03.74-.24 1.01l-2.2 2.2z"/>
-    </svg>
-  </button>
+
  <div class="chat-container">
-    <button class="mic-button" aria-label="הקלט קול">
-      <svg xmlns="http://www.w3.org/2000/svg" height="22" width="22" viewBox="0 0 24 24">
-        <path d="M12 14q-1.25 0-2.125-.875T9 11V5q0-1.25.875-2.125T12 2q1.25 0 2.125.875T15 5v6q0 1.25-.875 2.125T12 14Zm-1 7v-3.1q-2.9-.35-4.95-2.525Q4 13.2 4 10h2q0 2.5 1.75 4.25T12 16q2.5 0 4.25-1.75T18 10h2q0 3.2-2.05 5.375T13 17.9V21Z"/>
+    <button id="callButton" class="call-button" aria-label="התחל שיחה">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+        <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.47.57 3.57.11.35.03.74-.24 1.01l-2.2 2.2z"/>
       </svg>
     </button>
     <input type="text" id="userInput" placeholder="הקלד כאן..." />
@@ -206,15 +246,55 @@
     const responseDiv = document.getElementById("response");
     const inputEl = document.getElementById("userInput");
     const callButton = document.getElementById("callButton");
+    const equalizer = document.getElementById("equalizer");
     let mediaRecorder;
     let audioChunks = [];
     let isCalling = false; // New state variable to track call status
+    let audioContext;
+    let analyser;
+    let source;
+    let animationFrameId;
 
     function showSpeakingIndicator() {
       document.getElementById("speaking-indicator").style.display = "flex";
     }
     function hideSpeakingIndicator() {
       document.getElementById("speaking-indicator").style.display = "none";
+    }
+
+    function showEqualizer() {
+        equalizer.style.display = "flex";
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+
+        function draw() {
+            animationFrameId = requestAnimationFrame(draw);
+            analyser.getByteFrequencyData(dataArray);
+
+            const bars = equalizer.children;
+            const step = Math.floor(bufferLength / bars.length);
+            for (let i = 0; i < bars.length; i++) {
+                const barHeight = dataArray[i * step] / 255 * 100; // Normalize to 100%
+                bars[i].style.height = `${barHeight}%`;
+            }
+        }
+        draw();
+    }
+
+    function hideEqualizer() {
+        equalizer.style.display = "none";
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+        }
+        if (source) {
+            source.disconnect();
+            source = null;
+        }
     }
 
     async function sendToBot(text = null) {
@@ -298,75 +378,99 @@
 
     async function startRecording() {
       if (isCalling) { // Only start recording if a call is active
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
-        audioChunks = [];
-        document.getElementById("recording-indicator").style.display = "block";
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+            document.getElementById("recording-indicator").style.display = "block";
+            showEqualizer(); // Show equalizer when recording starts
 
-        mediaRecorder.ondataavailable = event => {
-          audioChunks.push(event.data);
-        };
+            // Connect stream to AudioContext for equalizer
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            source = audioContext.createMediaStreamSource(stream);
+            source.connect(analyser);
+            analyser.connect(audioContext.destination); // Connect to speakers so you can hear yourself (optional)
 
-        mediaRecorder.onstop = async () => {
-          document.getElementById("recording-indicator").style.display = "none";
-          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-          const formData = new FormData();
-          formData.append('file', audioBlob, 'recording.webm');
-          formData.append('message_type', 'voice');
-          formData.append('source', 'mic');
 
-          const thinking = document.createElement("div");
-          thinking.id = "thinking";
-          thinking.innerHTML = `⏳ הסוכן חושב...<div class="speaking-indicator"><span></span><span></span><span></span><span></span><span></span></div>`;
-          responseDiv.appendChild(thinking);
-          scrollToBottom();
+            mediaRecorder.ondataavailable = event => {
+              audioChunks.push(event.data);
+            };
 
-          try {
-            const res = await fetch("https://chaim.app.n8n.cloud/webhook/886eec14-f666-4db2-96f8-5914f21751d0", {
-              method: "POST",
-              body: formData
-            });
-            await handleResponse(res);
-          } catch (err) {
-            thinking.remove();
-            responseDiv.innerHTML += `<p>❌ שגיאה בשליחה: ${err.message}</p>`;
-          }
-        };
-        mediaRecorder.start();
-        setTimeout(() => {
-          if (mediaRecorder && mediaRecorder.state !== "inactive" && isCalling) { // Only stop if still calling
-            mediaRecorder.stop();
-          }
-        }, 5000);
+            mediaRecorder.onstop = async () => {
+              document.getElementById("recording-indicator").style.display = "none";
+              hideEqualizer(); // Hide equalizer when recording stops
+              // Disconnect audio stream if it's no longer needed for recording
+              if (stream) {
+                  stream.getTracks().forEach(track => track.stop());
+              }
+
+              const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+              const formData = new FormData();
+              formData.append('file', audioBlob, 'recording.webm');
+              formData.append('message_type', 'voice');
+              formData.append('source', 'mic');
+
+              const thinking = document.createElement("div");
+              thinking.id = "thinking";
+              thinking.innerHTML = `⏳ הסוכן חושב...<div class="speaking-indicator"><span></span><span></span><span></span><span></span><span></span></div>`;
+              responseDiv.appendChild(thinking);
+              scrollToBottom();
+
+              try {
+                const res = await fetch("https://chaim.app.n8n.cloud/webhook/886eec14-f666-4db2-96f8-5914f21751d0", {
+                  method: "POST",
+                  body: formData
+                });
+                await handleResponse(res);
+              } catch (err) {
+                thinking.remove();
+                responseDiv.innerHTML += `<p>❌ שגיאה בשליחה: ${err.message}</p>`;
+              }
+            };
+            mediaRecorder.start();
+            setTimeout(() => {
+              if (mediaRecorder && mediaRecorder.state !== "inactive" && isCalling) { // Only stop if still calling
+                mediaRecorder.stop();
+              }
+            }, 5000);
+        } catch (err) {
+            console.error("Error starting recording:", err);
+            alert("לא ניתן להתחיל הקלטה. ודא שניתנת גישת מיקרופון.");
+            toggleCall(); // Reset call state if recording fails
+        }
       }
     }
 
     function stopRecording() {
       if (mediaRecorder && mediaRecorder.state !== "inactive") {
         mediaRecorder.stop();
+        hideEqualizer(); // Ensure equalizer is hidden when stopped manually
       }
     }
 
-    // New function to toggle call status
+    // Function to toggle call status
     function toggleCall() {
       if (isCalling) {
         // End call
         isCalling = false;
         stopRecording();
         hideSpeakingIndicator();
-        callButton.classList.remove("active"); // Change to green
+        hideEqualizer(); // Hide equalizer when call ends
+        callButton.classList.remove("active"); // Change to green background
         callButton.setAttribute("aria-label", "התחל שיחה");
         alert("השיחה הופסקה. תוכל להפעיל מחדש בלחיצה על אייקון הטלפון.");
       } else {
         // Start call
         isCalling = true;
-        callButton.classList.add("active"); // Change to red
+        callButton.classList.add("active"); // Change to red background
         callButton.setAttribute("aria-label", "סיים שיחה");
         startRecording();
       }
     }
 
-    // Event listener for the new call button
+    // Event listener for the call button
     callButton.addEventListener("click", toggleCall);
 
     // Initial mic and send button listeners (keep their original behavior)
